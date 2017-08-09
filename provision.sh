@@ -22,27 +22,6 @@ function parse_yaml {
 }
 
 self_update() {
-  if command -v md5sum >/dev/null 2>&1; then
-    MD5COMMAND="md5sum"
-  else
-    MD5COMMAND="md5 -r"
-  fi
-
-  SELF=$(basename $0)
-  UPDATEURL="https://raw.githubusercontent.com/wunderio/WunderFleet/$GITBRANCH/provision.sh"
-  MD5SELF=$($MD5COMMAND $0 | awk '{print $1}')
-  MD5LATEST=$(curl -s $UPDATEURL | $MD5COMMAND | awk '{print $1}')
-  if [[ "$MD5SELF" != "$MD5LATEST" ]]; then
-    read -p "There is update for this script available. Update now ([y]es / [n]o)?" -n 1 -r;
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-      cd $ROOT
-      curl -s -o $SELF $UPDATEURL
-      echo "Update complete, please rerun any command you were running previously."
-      echo "See CHANGELOG for more info."
-      echo "Also remember to add updated script to git."
-      exit
-    fi
-  fi
   # Clone and update virtual environment configurations
   if [ ! -d "$ROOT/ansible" ]; then
     git clone  -b $ansible_branch $ansible_remote $ROOT/ansible
