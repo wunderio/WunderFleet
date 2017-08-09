@@ -1,0 +1,7 @@
+ansible:
+  remote: git@github.com:wunderio/WunderMachina.git
+  branch: master
+  revision:
+wundersecrets:
+  remote: git@github.com:wunderio/WunderSecrets.git
+

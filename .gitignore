@@ -1,0 +1,5 @@
+# Ignore secrets folder
+secrets
+
+# Ignore wundermachina
+ansible
