@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -ex
 
+# Allow changing git branch but default to master
+GITBRANCH=${GITBRANCH-master}
+
 function parse_yaml {
    local prefix=$2
    local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
