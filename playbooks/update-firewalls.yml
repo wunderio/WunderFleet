@@ -1,0 +1,107 @@
+# This is currently needed to check the private ip addresses of the machines
+- name: Collect facts from all machines
+  hosts: all
+  strategy: free
+  user: root
+  tasks: [ ]
+  # This is a special tag which forces this play even with --tags
+  tags: [ always ]
+
+- hosts: localhost
+  connection: local
+  become: false
+
+  # Include default variables from Wundermachina upcloud-firewall role
+  vars_files:
+    - ../ansible/playbook/roles/upcloud-firewall/defaults/main.yml
+
+  # Update all firewall rules except keep the web ports and unique configuration as they were for every machine
+  tasks:
+    - name: Allow SSH for Admins and Deployment Services
+      set_fact:
+        all_upcloud_firewall_rules: >
+          {{ all_upcloud_firewall_rules|default([]) +
+            [{
+              'machine': item[0],
+              'rule': {
+                'direction': 'in',
+                'source_address_start': item[1].ip,
+                'source_address_end': item[1].ip,
+                'action': 'accept',
+                'destination_port_start': hostvars[ item[0] ]['ansible_port']|default('22'),
+                'destination_port_end': hostvars[ item[0] ]['ansible_port']|default('22'),
+                'protocol': 'tcp',
+                'family': 'IPv4',
+                'comment': item[1].comment|default('')
+              }
+            }]
+          }}
+      with_nested:
+        - "{{ groups['all'] }}"
+        - "{{ firewall_ssh_allowed }}"
+        
+    - name: Remove legacy firewall rules
+      set_fact:
+        removable_upcloud_firewall_rules: >
+          {{ removable_upcloud_firewall_rules|default([]) +
+            [{
+              'machine': item[0],
+              'rule': {
+                'direction': 'in',
+                'source_address_start': item[1].ip,
+                'source_address_end': item[1].ip,
+                'action': 'accept',
+                'destination_port_start': hostvars[ item[0] ]['ansible_port']|default('22'),
+                'destination_port_end': hostvars[ item[0] ]['ansible_port']|default('22'),
+                'protocol': 'tcp',
+                'family': 'IPv4',
+                'comment': item[1].comment|default('')
+              }
+            }]
+          }}
+      with_nested:
+        - "{{ groups['all'] }}"
+        - "{{ remove_ssh_firewall_rules }}"
+      when: remove_ssh_firewall_rules is defined and remove_ssh_firewall_rules.0 is defined
+
+    - name: Setup upcloud firewalls for all machines in inventory
+      upcloud_firewall:
+        state: present
+        ip_address: "{{ item }}"
+        firewall_rules: >
+            {{  all_upcloud_firewall_rules |
+              default([]) |
+              selectattr('machine', 'equalto', item) |
+              map(attribute='rule') |
+              list + upcloud_default_firewall_rules
+            }}
+      with_items:
+        - "{{ groups['all'] }}"
+
+    - name: Remove legacy firewalls for all machines in inventory
+      upcloud_firewall:
+        state: absent
+        ip_address: "{{ item }}"
+        firewall_rules: "{{ removable_upcloud_firewall_rules|default([]) }}"
+      with_items:
+        - "{{ groups['all'] }}"
+
+    - name: Block all other connections
+      upcloud_firewall:
+        state: present
+        ip_address: "{{ item }}"
+        default_rules:
+          - direction: in
+            action: drop
+          - direction: out
+            action: accept
+      with_items:
+        - "{{ groups['all'] }}"
+
+    - name: Enable firewall for all machines
+      upcloud_server:
+        state: present
+        ip_address: "{{ item }}"
+        firewall: yes
+      with_items:
+        - "{{ groups['all'] }}"
