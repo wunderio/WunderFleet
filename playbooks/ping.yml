@@ -1,4 +1,5 @@
 - hosts: all
+  strategy: free
   remote_user: root
   tasks:
     - name: Test the connection to the server

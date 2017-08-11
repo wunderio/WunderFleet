@@ -1,4 +1,5 @@
 - hosts: all
+  strategy: free
   remote_user: root
   vars:
     # Check all these packages and update them if they are installed
