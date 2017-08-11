@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -ex
 
 # Allow changing git branch but default to master
 GITBRANCH=${GITBRANCH-master}

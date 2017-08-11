@@ -1,0 +1,63 @@
+- hosts: all
+  remote_user: root
+  vars:
+    # Check all these packages and update them if they are installed
+    # Add service paramater if that package contains any service that should be reloaded as well
+    upgradeable_packages:
+      - package: nginx
+        service: nginx
+      - package: MariaDB-server
+        service: mysql
+      - package: openssl
+
+  tasks:
+    - name: Update Centos packages
+      when: ansible_distribution == 'CentOS'
+      block:
+        - name: Check which upgradeable packages are installed
+          shell: yum list installed {{ item.package|quote }}
+          args:
+            warn: false # Don't warn us about using yum since ansible can't tell if package is installed or not
+          register: yum_package_check
+          with_items: "{{ upgradeable_packages }}"
+          changed_when: False
+          ignore_errors: yes # Don't fail when packages don't exist
+
+        # Parse all packages from this list to make ansible output prettier
+        - name: Collect a list of all found packages
+          set_fact:
+            found_packages: >
+              {{ found_packages|default([]) +
+                [{
+                    'package': item.item.package,
+                    'service': item.item.service|default(None)
+                }]
+              }}
+          with_items: "{{ yum_package_check.results }}"
+          when: item.rc is defined and item.rc == 0
+          loop_control: 
+            label: "{{ item.item.package }}"
+        
+        - name: Upgrade all found packages
+          yum:
+            name: "{{ item.package }}"
+            state: latest
+          with_items: "{{ found_packages }}"
+          register: yum_package_upgraded
+
+        # Parse all packages from this list to make ansible output prettier
+        - name: Collect a list of all upgraded services
+          set_fact:
+            upgraded_services: "{{ upgraded_services|default([]) + [ item.item.service ] }}"
+          with_items: "{{ yum_package_upgraded.results }}"
+          when: item.item.service is defined and item.changed
+          loop_control: 
+            label: "{{ item.item.service|default(item.package) }}"
+
+        # Only restart services which were upgraded
+        - name: Restart all updated services
+          service:
+            name: "{{ item }}"
+            state: restarted
+          with_items: "{{ upgraded_services|default([]) }}"
+
