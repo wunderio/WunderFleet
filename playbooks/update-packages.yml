@@ -8,7 +8,8 @@
         service: nginx
       - package: MariaDB-server
         service: mysql
-      - package: openssl
+      - package: openssl 
+        service: sshd # Restart sshd after openssl has been upgraded
 
   tasks:
     - name: Update Centos packages
@@ -35,7 +36,7 @@
               }}
           with_items: "{{ yum_package_check.results }}"
           when: item.rc is defined and item.rc == 0
-          loop_control: 
+          loop_control:
             label: "{{ item.item.package }}"
         
         - name: Upgrade all found packages
@@ -59,5 +60,6 @@
           service:
             name: "{{ item }}"
             state: restarted
+          when: item is defined
           with_items: "{{ upgraded_services|default([]) }}"
 
