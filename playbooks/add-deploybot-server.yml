@@ -1,6 +1,6 @@
 # This is currently needed to check the private ip addresses of the machines
 - name: Collect facts from all machines
-  hosts: test
+  hosts: all
   strategy: free
   user: root
   tasks: [ ]
