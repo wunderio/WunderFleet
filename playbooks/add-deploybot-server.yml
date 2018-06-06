@@ -1,0 +1,34 @@
+# This is currently needed to check the private ip addresses of the machines
+- name: Collect facts from all machines
+  hosts: test
+  strategy: free
+  user: root
+  tasks: [ ]
+  # This is a special tag which forces this play even with --tags
+  tags: [ always ]
+
+- hosts: localhost
+  connection: local
+  become: false
+
+
+  # Update all firewall rules except keep the web ports and unique configuration as they were for every machine
+  tasks:
+    - name: Add single firewall rule
+      upcloud_firewall:
+        state: present
+        ip_address: "{{ item }}"
+        firewall_rules:
+          - direction: 'in'
+            source_address_start: 54.200.148.82
+            source_address_end: 54.200.148.82
+            action: 'accept'
+            destination_port_start: 22
+            destination_port_end: 22
+            protocol: 'tcp'
+            family: 'IPv4'
+            comment: 'Deploybot server'
+      with_items:
+        - "{{ groups['all'] }}"
+
+
