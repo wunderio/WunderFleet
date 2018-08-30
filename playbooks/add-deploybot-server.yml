@@ -62,7 +62,7 @@
     - name: Block all other connections
       upcloud_firewall:
         state: present
-        ip_address: "{{ hostvars[item]['ansible_host']|default(item) }}"
+        ip_address: "{{ item }}"
         default_rules:
           - direction: in
             action: drop
