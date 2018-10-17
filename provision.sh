@@ -83,26 +83,22 @@ if [ ! $SKIP_REQUIREMENTS ] ; then
       exit 1
   else
     # Install virtualenv
-    which -a virtualenv >> /dev/null
+    which -a pipenv >> /dev/null
     if [[ $? != 0 ]] ; then
-      pip install virtualenv
+      sudo pip install pipenv
     fi
-    # Create a virtualenv for this project and use it for ansible
-    if [ ! -f $ROOT/.virtualenv ]; then
-      virtualenv --python=python2.7 $ROOT/ansible/.virtualenv
-    fi
-
-    # Use the virtualenv
-    source $ROOT/ansible/.virtualenv/bin/activate
+    cd $ROOT/ansible
+    VENV=`pipenv --venv`
 
     # Ensure ansible & ansible library versions with pip
-    if [ -f $ROOT/ansible/requirements.txt ]; then
-      pip install -r $ROOT/ansible/requirements.txt --upgrade
+    if [ -f $ROOT/ansible/Pipfile.lock ]; then
+      pipenv install 
     else
-      pip install ansible
+      pipenv install ansible
     fi
   fi
 fi
+
 
 # Setup&Use WunderSecrets if the additional config file exists
 if [ -f $wundersecrets_path/ansible.yml ]; then
@@ -116,4 +112,4 @@ if [ "$VAULT_FILE" != "" ] && [ -f $wundersecrets_path/vault.yml ]; then
   WUNDER_SECRETS="$WUNDER_SECRETS --extra-vars=@$wundersecrets_path/vault.yml"
 fi
 
-ansible-playbook $WUNDER_SECRETS "$@"
+pipenv run ansible-playbook $WUNDER_SECRETS "$@"
